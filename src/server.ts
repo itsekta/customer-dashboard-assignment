@@ -1,7 +1,7 @@
 import app from "./app";
 import { runConsumer } from "./kafka/kafkaConsumer";
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 4001;
 
 const startApp = async () => {
   try {

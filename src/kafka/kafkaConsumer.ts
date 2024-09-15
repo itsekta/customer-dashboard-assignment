@@ -1,6 +1,7 @@
 import { Kafka } from "kafkajs";
 import { Message } from "../types/messageTypes";
-
+import { runProducer } from "./kafkaProducer";
+import formatTime from "../utils/timeFormat";
 const kafka = new Kafka({
   clientId: "my-app",
   brokers: ["localhost:9092"],
@@ -13,6 +14,33 @@ let messageHistory: Message[] = [];
 
 export const runConsumer = async () => {
   try {
+    // Dummy data from producer
+
+    const messages = [
+      {
+        store_id: 10,
+        customers_in: 2,
+        customers_out: 3,
+        time_stamp: formatTime(new Date()),
+      },
+      {
+        store_id: 10,
+        customers_in: 0,
+        customers_out: 1,
+        time_stamp: formatTime(new Date()),
+      },
+      {
+        store_id: 10,
+        customers_in: 2,
+        customers_out: 0,
+        time_stamp: formatTime(new Date()),
+      },
+    ];
+
+    for (const message of messages) {
+      await runProducer(message);
+    }
+
     await consumer.connect();
     console.log("Consumer connected");
 
@@ -30,11 +58,11 @@ export const runConsumer = async () => {
             liveData.push(parsedMessage);
 
             // Add to historical data (24-hour window)
-            const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-            messageHistory = messageHistory.filter(
-              (msg) => new Date(msg.time_stamp) > oneDayAgo
-            );
-            messageHistory.push(parsedMessage);
+            // const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+            // messageHistory = messageHistory.filter(
+            //   (msg) => new Date(msg.time_stamp) > oneDayAgo
+            // );
+            // messageHistory.push(parsedMessage);
           } catch (error) {
             console.error("Error parsing message:", error);
           }
@@ -54,7 +82,7 @@ export const getMessageHistory = () => {
   } = {};
 
   messageHistory.forEach((msg) => {
-    const hour = new Date(msg.time_stamp).toISOString().slice(0, 13);
+    const hour = new Date().toISOString().slice(0, 13);
     // console.log("Hour",hour);
 
     if (!groupedHistory[hour]) {
