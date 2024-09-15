@@ -2,6 +2,7 @@ import { Kafka } from "kafkajs";
 import { Message } from "../types/messageTypes";
 import { runProducer } from "./kafkaProducer";
 import formatTime from "../utils/timeFormat";
+import formatDate from "../utils/dateFormat";
 const kafka = new Kafka({
   clientId: "my-app",
   brokers: ["localhost:9092"],
@@ -9,31 +10,33 @@ const kafka = new Kafka({
 
 const consumer = kafka.consumer({ groupId: "test-group" });
 
-let liveData: Message[] = [];
+let liveData: Message | null = null;
 let messageHistory: Message[] = [];
 
 export const runConsumer = async () => {
   try {
     // Dummy data from producer
-
     const messages = [
       {
         store_id: 10,
         customers_in: 2,
         customers_out: 3,
         time_stamp: formatTime(new Date()),
+        date: new Date().toISOString(),
       },
       {
         store_id: 10,
         customers_in: 0,
         customers_out: 1,
         time_stamp: formatTime(new Date()),
+        date: new Date().toISOString(),
       },
       {
         store_id: 10,
         customers_in: 2,
         customers_out: 0,
         time_stamp: formatTime(new Date()),
+        date: new Date().toISOString(),
       },
     ];
 
@@ -54,15 +57,11 @@ export const runConsumer = async () => {
           try {
             const parsedMessage: Message = JSON.parse(receivedMessage);
 
-            // Add to live data
-            liveData.push(parsedMessage);
+            // Update liveData with the most recent message
+            liveData = parsedMessage;
 
-            // Add to historical data (24-hour window)
-            // const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-            // messageHistory = messageHistory.filter(
-            //   (msg) => new Date(msg.time_stamp) > oneDayAgo
-            // );
-            // messageHistory.push(parsedMessage);
+            // Update messageHistory
+            messageHistory.push(parsedMessage);
           } catch (error) {
             console.error("Error parsing message:", error);
           }
@@ -77,23 +76,13 @@ export const runConsumer = async () => {
 export const getLiveData = () => liveData;
 
 export const getMessageHistory = () => {
-  const groupedHistory: {
-    [hour: string]: { customers_in: number; customers_out: number };
-  } = {};
-
-  messageHistory.forEach((msg) => {
-    const hour = new Date().toISOString().slice(0, 13);
-    // console.log("Hour",hour);
-
-    if (!groupedHistory[hour]) {
-      groupedHistory[hour] = { customers_in: 0, customers_out: 0 };
-    }
-    groupedHistory[hour].customers_in += msg.customers_in;
-    groupedHistory[hour].customers_out += msg.customers_out;
+  const updateHistory = messageHistory.map((msg) => {
+    return {
+      date: formatDate(msg.date),
+      customers_in: msg.customers_in,
+      customers_out: msg.customers_out,
+    };
   });
 
-  return Object.keys(groupedHistory).map((hour) => ({
-    hour,
-    ...groupedHistory[hour],
-  }));
+  return updateHistory;
 };

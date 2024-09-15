@@ -8,7 +8,7 @@ import formatTime from "../utils/timeFormat";
 export const addMessage = async (req: Request, res: Response) => {
   try {
     // console.log("Data received",req.body);
-    const { store_id, customers_in, customers_out } = req.body;
+    const { store_id, customers_in, customers_out, date } = req.body;
 
     if (
       !store_id ||
@@ -17,12 +17,14 @@ export const addMessage = async (req: Request, res: Response) => {
     ) {
       return res.status(400).json({ error: "Missing required fields" });
     }
-
+    // default today date
+    const todayDate = new Date().toISOString();
     const message: Message = {
       store_id,
       customers_in,
       customers_out,
       time_stamp: formatTime(new Date()),
+      date: date ? date : todayDate,
     };
     await runProducer(message);
     res.status(200).json({ message: "Message added successfully" });

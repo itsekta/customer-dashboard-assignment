@@ -3,4 +3,5 @@ export interface Message {
   customers_in: number;
   customers_out: number;
   time_stamp: string;
+  date: string;
 }
